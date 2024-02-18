@@ -260,41 +260,16 @@ void measureDistance() {
 
 //rotating functions
 void RotateCW_M1() {
-
-  for (int speed = 0; speed <= 400; speed++)
-  {
-    motors.setM1Speed(speed);
-    stopIfFault();
-    //delay(2);
-  }
-
+  motors.setM1Speed(400);
 }
 void RotateCW_M2() {
-
-  for (int speed = 0; speed <= 400; speed++)
-  {
-    motors.setM2Speed(speed);
-    stopIfFault();
-    //delay(2);
-  }
-
-
+  motors.setM2Speed(400);
 }
 void RotateCCW_M1() {
-  for (int speed = 0; speed >= -400; speed--)
-  {
-    motors.setM1Speed(speed);
-    stopIfFault();
-    //delay(2);
-  }
+  motors.setM1Speed(-400);
 }
 void RotateCCW_M2() {
-  for (int speed = 0; speed >= -400; speed--)
-  {
-    motors.setM2Speed(speed);
-    stopIfFault();
-    //delay(2);
-  }
+  motors.setM2Speed(-400);
 }
 
 void turnRight() {
