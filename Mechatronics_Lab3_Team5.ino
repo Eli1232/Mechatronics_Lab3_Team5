@@ -37,17 +37,17 @@ float countsFor90Degrees = countsPerDegree * 90; //may need to be calibrated/cha
 float angResolution;
 
 //sensor initialization
-int signal = 52; //digital pin
+int signal = 49; //digital pin
 float distance;
 int distThresh = 20;
 unsigned long pulseDuration; //USS
 
 //LEDs for debugging:
-const int ledForward = 10;
+const int ledForward = 52;
 const int ledBackward = 11;
-const int ledTurnLeft = 12;
-const int ledTurnRight = 13;
-const int ledStationary = 14;
+const int ledTurnLeft = 53;
+const int ledTurnRight = 50;
+const int ledStationary = 51;
 
 //pixy signatures
 const int SIGNATURE_LEFT = 1;
@@ -124,6 +124,8 @@ void loop() {
   motors.enableDrivers();
   measureDistance();
   distance = (pulseDuration * 0.0001 * 343) / 2; //conversion for the distance
+  Serial.println(distance);
+  Serial.println(currentState);
 
 
   switch (currentState) {
