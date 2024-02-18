@@ -34,6 +34,7 @@ volatile int encoderCountRight = 0;
 volatile int encoderCountLeft = 0;
 float countsPerDegree = (9.7 * 48) / 360.0;
 float countsFor90Degrees = countsPerDegree * 90; //may need to be calibrated/changed
+float angResolution;
 
 //sensor initialization
 int signal = 52; //digital pin
@@ -49,10 +50,9 @@ const int ledTurnRight = 13;
 const int ledStationary = 14;
 
 //pixy signatures
-const int SIGNATURE_FORWARD = 1;
-const int SIGNATURE_LEFT = 2;
-const int SIGNATURE_RIGHT = 3;
-const int SIGNATURE_BACKWARD = 4;
+const int SIGNATURE_LEFT = 1;
+const int SIGNATURE_RIGHT = 2;
+const int SIGNATURE_TURN_AROUND = 3;
 
 
 enum Action {
@@ -69,7 +69,9 @@ enum Action {
 Action volatile currentState = STATIONARY;
 
 //prototypes
-void setCarState(Action newState);
+void setCarState(Action newState) {
+  currentState = newState;
+}
 
 
 
@@ -193,7 +195,7 @@ void loop() {
 
       measureDistance();
       distance = (pulseDuration * 0.0001 * 343) / 2; //conversion for the distance
-      
+
       if (distance <= distThresh) { //if robot close to the wall, read the color, otherwise, keep going forward
         setCarState(PIXY_READ);
       }
@@ -207,19 +209,15 @@ void loop() {
       if (detected_objects > 0) { //if greater than zero object has been detected
         for (int i = 0; i < detected_objects; i++ ) {
           switch (pixy.ccc.blocks[i].m_signature) {
-            case SIGNATURE_FORWARD:
-              setCarState(FORWARD);
-              break;
             case SIGNATURE_LEFT:
               setCarState(TURN_LEFT);
               break;
             case SIGNATURE_RIGHT:
               setCarState(TURN_RIGHT);
               break;
-            case SIGNATURE_BACKWARD:
-              setCarState(BACKWARD);
+            case SIGNATURE_TURN_AROUND:
+              setCarState(TURN_AROUND);
               break;
-            // Add more cases??
             default:
               // unknown signatures
               break;
@@ -227,98 +225,97 @@ void loop() {
           // Exit the loop after setting the state based on the first recognized signature
           break;
         }
-        else {
-          //no objects detected
-        }
+
+      }
+      else {
+        //no objects detected
       }
       break;
 
   }
+}
 
-  void measureDistance() {
+void measureDistance() {
 
-    //set pin as output so we can send a pulse
-    pinMode(signal, OUTPUT);
-    //set output to LOW
-    digitalWrite(signal, LOW);
-    delayMicroseconds(5);
+  //set pin as output so we can send a pulse
+  pinMode(signal, OUTPUT);
+  //set output to LOW
+  digitalWrite(signal, LOW);
+  delayMicroseconds(5);
 
-    //now send the 5uS pulse out to activate the PING
-    digitalWrite(signal, HIGH);
-    delayMicroseconds(5);
-    digitalWrite(signal, LOW);
-
-
-    //now we need to change the digital pin
-    //to input to read the incoming pulse
-    pinMode(signal, INPUT);
-
-    //finally, measure the length of the incoming pulse
-    pulseDuration = pulseIn(signal, HIGH);
-
-  }
-
-  //rotating functions
-  void RotateCW_M1() {
-
-    for (int speed = 0; speed <= 400; speed++)
-    {
-      motors.setM1Speed(speed);
-      stopIfFault();
-      //delay(2);
-    }
-
-  }
-  void RotateCW_M2() {
-
-    for (int speed = 0; speed <= 400; speed++)
-    {
-      motors.setM2Speed(speed);
-      stopIfFault();
-      //delay(2);
-    }
+  //now send the 5uS pulse out to activate the PING
+  digitalWrite(signal, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(signal, LOW);
 
 
-  }
-  void RotateCCW_M1() {
-    for (int speed = 400; speed >= 0; speed--)
-    {
-      motors.setM1Speed(speed);
-      stopIfFault();
-      //delay(2);
-    }
-  }
+  //now we need to change the digital pin
+  //to input to read the incoming pulse
+  pinMode(signal, INPUT);
 
+  //finally, measure the length of the incoming pulse
+  pulseDuration = pulseIn(signal, HIGH);
 
-  void turnRight() {
-    encoderCountRight = 0; // Reset right encoder count
-    encoderCountLeft = 0;  // Reset left encoder count
-    motors.setM1Speed(-200); //we want a set speed instead of a ramp up
-    motors.setM2Speed(200);
-    while (encoderCountRight < countsFor90Degrees && encoderCountLeft < countsFor90Degrees) {
-      // Keep turning until the desired encoder count is reached
-    }
-  }
-  void turnLeft() {
-    encoderCountRight = 0; // Reset right encoder count
-    encoderCountLeft = 0;  // Reset left encoder count
-    motors.setM1Speed(200); //we want a set speed instead of a ramp up
-    motors.setM2Speed(-200);
-    while (encoderCountRight < countsFor90Degrees && encoderCountLeft < countsFor90Degrees) {
-      // Keep turning until the desired encoder count is reached
-    }
+}
+
+//rotating functions
+void RotateCW_M1() {
+
+  for (int speed = 0; speed <= 400; speed++)
+  {
+    motors.setM1Speed(speed);
+    stopIfFault();
+    //delay(2);
   }
 
 }
-void RotateCCW_M2() {
-  for (int speed = 400; speed >= 0; speed--)
+void RotateCW_M2() {
+
+  for (int speed = 0; speed <= 400; speed++)
   {
     motors.setM2Speed(speed);
     stopIfFault();
     //delay(2);
   }
 
+
 }
+void RotateCCW_M1() {
+  for (int speed = 0; speed >= -400; speed--)
+  {
+    motors.setM1Speed(speed);
+    stopIfFault();
+    //delay(2);
+  }
+}
+void RotateCCW_M2() {
+  for (int speed = 0; speed >= -400; speed--)
+  {
+    motors.setM2Speed(speed);
+    stopIfFault();
+    //delay(2);
+  }
+}
+
+void turnRight() {
+  encoderCountRight = 0; // Reset right encoder count
+  encoderCountLeft = 0;  // Reset left encoder count
+  motors.setM1Speed(-200); //we want a set speed instead of a ramp up
+  motors.setM2Speed(200);
+  while (encoderCountRight < countsFor90Degrees && encoderCountLeft < countsFor90Degrees) {
+    // Keep turning until the desired encoder count is reached
+  }
+}
+void turnLeft() {
+  encoderCountRight = 0; // Reset right encoder count
+  encoderCountLeft = 0;  // Reset left encoder count
+  motors.setM1Speed(200); //we want a set speed instead of a ramp up
+  motors.setM2Speed(-200);
+  while (encoderCountRight < countsFor90Degrees && encoderCountLeft < countsFor90Degrees) {
+    // Keep turning until the desired encoder count is reached
+  }
+}
+
 
 //encoder counts
 void changeM1A() {
@@ -358,6 +355,16 @@ void changeM2B() {
 
 }
 
-
-
+void stopIfFault()
+{
+  if (motors.getFault())
+  {
+    while (1)
+    {
+      digitalWrite(13, HIGH);
+      delay(100);
+      digitalWrite(13, LOW);
+      delay(100);
+    }
+  }
 }
