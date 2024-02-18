@@ -33,7 +33,9 @@ int M2CHB = 19; //motor 2
 volatile int encoderCountRight = 0;
 volatile int encoderCountLeft = 0;
 float countsPerDegree = (9.7 * 48) / 360.0;
-float countsFor90Degrees = countsPerDegree * 90; //may need to be calibrated/changed
+float countsFor90Degrees = countsPerDegree * 2300.14; //may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft
+        //value for above should be 230.14, I added a 0 to make it easier to debug the modes. Should determine empirically. 
+float countsFor180Degrees = countsFor90Degrees*2.0;
 float angResolution;
 
 //sensor initialization
@@ -43,11 +45,13 @@ int distThresh = 20;
 unsigned long pulseDuration; //USS
 
 //LEDs for debugging:
-const int ledForward = 52;
+const int ledForward = 48;
 const int ledBackward = 11;
 const int ledTurnLeft = 53;
-const int ledTurnRight = 50;
-const int ledStationary = 51;
+const int ledTurnRight = 46;
+//const int ledStationary = 51;
+const int ledTurnAround = 47;
+
 
 //pixy signatures
 const int SIGNATURE_LEFT = 1;
@@ -67,6 +71,7 @@ enum Action {
 
 //robot state variables
 Action volatile currentState = STATIONARY;
+//Action volatile currentState = FORWARD;
 
 //prototypes
 void setCarState(Action newState) {
@@ -103,25 +108,19 @@ void setup() {
   pinMode(ledBackward, OUTPUT);
   pinMode(ledTurnLeft, OUTPUT);
   pinMode(ledTurnRight, OUTPUT);
-  pinMode(ledStationary, OUTPUT);
+  pinMode(ledTurnAround, OUTPUT);
 
   angResolution = 360. / (9.7 * 48);
-
-
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-
+  motors.enableDrivers();
   // Turn off all LEDs initially
-  digitalWrite(ledForward, LOW);
-  digitalWrite(ledBackward, LOW);
-  digitalWrite(ledTurnLeft, LOW);
-  digitalWrite(ledTurnRight, LOW);
-  digitalWrite(ledStationary, LOW);
+  ledOff();
 
   //should we have sensors on the side in case the robot needs to reorient itself by backing up???
-  motors.enableDrivers();
+
   measureDistance();
   distance = (pulseDuration * 0.0001 * 343) / 2; //conversion for the distance
   Serial.println(distance);
@@ -132,6 +131,7 @@ void loop() {
 
 
     case FORWARD:
+      ledOff();
       //both motors turn forward at the same speed (no need for feedback control because we'll use distance sensors for that)
       //motors move until certain distance is achieved from wall, turn wheel, then send back to stationary
 
@@ -150,6 +150,7 @@ void loop() {
       break;
 
     case BACKWARD:
+      ledOff();
       //both motors turn backward at the same speed, until certain distance
       //red LED turns on
       digitalWrite(ledBackward, HIGH);
@@ -164,6 +165,7 @@ void loop() {
       break;
 
     case TURN_LEFT:
+      ledOff();
       //right motor moves forward, left motor moves back
       //need someway to control how much the robot turns
       //left LED turns on
@@ -174,6 +176,7 @@ void loop() {
       break;
 
     case TURN_RIGHT:
+      ledOff();
       //left motor moves forward, right motor moves back
       //need someway to control how much the robot turns
       //right LED moves back
@@ -184,20 +187,20 @@ void loop() {
       break;
 
     case TURN_AROUND:
-      //to be implemented
+      ledOff();
+      digitalWrite(ledTurnAround, HIGH);
+      turnAround();
+      setCarState(STATIONARY);
       break;
 
     case STATIONARY:
+      ledOff();
       //nothing happens
-      digitalWrite(ledStationary, HIGH);
+    //  digitalWrite(ledStationary, HIGH);
       //if sensor sees certain color, change state to forward
       //if sensor sees another color, turn left/right/backward
       motors.setM1Speed(0);
       motors.setM2Speed(0);
-
-      measureDistance();
-      distance = (pulseDuration * 0.0001 * 343) / 2; //conversion for the distance
-
       if (distance <= distThresh) { //if robot close to the wall, read the color, otherwise, keep going forward
         setCarState(PIXY_READ);
       }
@@ -235,6 +238,7 @@ void loop() {
       break;
 
   }
+  delay(5);
 }
 
 void measureDistance() {
@@ -262,72 +266,101 @@ void measureDistance() {
 
 //rotating functions
 void RotateCW_M1() {
-  motors.setM1Speed(400);
+  motors.setM1Speed(200);
 }
 void RotateCW_M2() {
-  motors.setM2Speed(400);
+  motors.setM2Speed(200);
 }
 void RotateCCW_M1() {
-  motors.setM1Speed(-400);
+  motors.setM1Speed(-200);
 }
 void RotateCCW_M2() {
-  motors.setM2Speed(-400);
+  motors.setM2Speed(-200);
 }
 
 void turnRight() {
   encoderCountRight = 0; // Reset right encoder count
   encoderCountLeft = 0;  // Reset left encoder count
-  motors.setM1Speed(-200); //we want a set speed instead of a ramp up
-  motors.setM2Speed(200);
-  while (encoderCountRight < countsFor90Degrees && encoderCountLeft < countsFor90Degrees) {
+  motors.setM1Speed(200); //we want a set speed instead of a ramp up
+  motors.setM2Speed(-200);
+  while (encoderCountLeft < countsFor90Degrees && encoderCountRight > -1 * countsFor90Degrees) {
     // Keep turning until the desired encoder count is reached
+    Serial.println(encoderCountRight);
+    Serial.println(encoderCountLeft);
   }
+  motors.setM1Speed(0); //wait 1 second after turning
+  motors.setM2Speed(0);
+  delay(1000);
 }
 void turnLeft() {
   encoderCountRight = 0; // Reset right encoder count
   encoderCountLeft = 0;  // Reset left encoder count
-  motors.setM1Speed(200); //we want a set speed instead of a ramp up
-  motors.setM2Speed(-200);
-  while (encoderCountRight < countsFor90Degrees && encoderCountLeft < countsFor90Degrees) {
+  //  motors.setM1Speed(0); //we want a set speed instead of a ramp up
+  //  motors.setM2Speed(0);
+  motors.setM1Speed(-200); //we want a set speed instead of a ramp up
+  motors.setM2Speed(200);
+  while ((encoderCountLeft > -1 * countsFor90Degrees) or (encoderCountRight < countsFor90Degrees)) {
     // Keep turning until the desired encoder count is reached
+    Serial.println(encoderCountRight);
+    Serial.println(encoderCountLeft);
   }
+  motors.setM1Speed(0); //wait 1 second after turning
+  motors.setM2Speed(0);
+  delay(1000);
+}
+
+void turnAround() {
+  encoderCountRight = 0; // Reset right encoder count
+  encoderCountLeft = 0;  // Reset left encoder count
+  //  motors.setM1Speed(0); //we want a set speed instead of a ramp up
+  //  motors.setM2Speed(0);
+  motors.setM1Speed(-200); //we want a set speed instead of a ramp up
+  motors.setM2Speed(200);
+  while ((encoderCountLeft > -1 * countsFor180Degrees) or (encoderCountRight < countsFor180Degrees)) {
+    // Keep turning until the desired encoder count is reached
+    Serial.println(encoderCountRight);
+    Serial.println(encoderCountLeft);
+  }
+  motors.setM1Speed(0); //wait 1 second after turning
+  motors.setM2Speed(0);
+  delay(1000);
 }
 
 
 //encoder counts
 void changeM1A() {
   if (digitalRead(M1CHA) != digitalRead(M1CHB)) {
-    encoderCountRight++;
+    encoderCountLeft++;
   }
   else {
-    encoderCountRight--;
+    encoderCountLeft--;
   }
 
 }
 void changeM1B() {
   if (digitalRead(M1CHA) != digitalRead(M1CHB)) {
-    encoderCountRight--;
+    encoderCountLeft--;
   }
   else {
-    encoderCountRight++;
+    encoderCountLeft++;
   }
 
 }
 void changeM2A() {
   if (digitalRead(M2CHA) != digitalRead(M2CHB)) {
-    encoderCountLeft++;
+    encoderCountRight++;
   }
   else {
-    encoderCountLeft--;
+    encoderCountRight--;
   }
 
 }
 void changeM2B() {
   if (digitalRead(M2CHA) != digitalRead(M2CHB)) {
-    encoderCountLeft--;
+    encoderCountRight--;
   }
   else {
-    encoderCountLeft++;
+    encoderCountRight++;
   }
 
 }
@@ -344,4 +377,12 @@ void stopIfFault()
       delay(100);
     }
   }
+}
+
+void ledOff() {
+  digitalWrite(ledForward, LOW);
+  digitalWrite(ledBackward, LOW);
+  digitalWrite(ledTurnLeft, LOW);
+  digitalWrite(ledTurnRight, LOW);
+  digitalWrite(ledTurnAround, LOW);
 }
