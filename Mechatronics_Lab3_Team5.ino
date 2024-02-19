@@ -24,18 +24,18 @@ Pixy2 pixy;
 
 
 //set pins for encoders, pwm, inputs, etc
-int M1CHA = 2; //motor 1 "inputs"
-int M1CHB = 3; //motor 1 "inputs"
+int M1CHA = 19; //yellow, left, motor 1 "inputs"
+int M1CHB = 18; //white, left, motor 1 "inputs"
 
-int M2CHA = 18; //motor 2
-int M2CHB = 19; //motor 2
+int M2CHA = 2; //yellow, right, motor 2
+int M2CHB = 3; //white, right, motor 2
 
 volatile int encoderCountRight = 0;
 volatile int encoderCountLeft = 0;
 float countsPerDegree = (9.7 * 48) / 360.0;
-float countsFor90Degrees = countsPerDegree * 2300.14; //may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft
-        //value for above should be 230.14, I added a 0 to make it easier to debug the modes. Should determine empirically. 
-float countsFor180Degrees = countsFor90Degrees*2.0;
+float countsFor90Degrees = countsPerDegree * 90 * 9.25 / 3.5; //may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft
+//value for above should be 230.14, I added a 0 to make it easier to debug the modes. Should determine empirically.
+float countsFor180Degrees = countsFor90Degrees * 2.0;
 float angResolution;
 
 //sensor initialization
@@ -123,7 +123,9 @@ void loop() {
 
   measureDistance();
   distance = (pulseDuration * 0.0001 * 343) / 2; //conversion for the distance
+  Serial.print("distance: ");
   Serial.println(distance);
+  Serial.print("state: ");
   Serial.println(currentState);
 
 
@@ -196,7 +198,7 @@ void loop() {
     case STATIONARY:
       ledOff();
       //nothing happens
-    //  digitalWrite(ledStationary, HIGH);
+      //  digitalWrite(ledStationary, HIGH);
       //if sensor sees certain color, change state to forward
       //if sensor sees another color, turn left/right/backward
       motors.setM1Speed(0);
@@ -279,13 +281,18 @@ void RotateCCW_M2() {
 }
 
 void turnRight() {
+  motors.setM1Speed(0);
+  motors.setM2Speed(0);
+  delay(200); // this delay reduces inertia and improves consistency
   encoderCountRight = 0; // Reset right encoder count
   encoderCountLeft = 0;  // Reset left encoder count
   motors.setM1Speed(200); //we want a set speed instead of a ramp up
   motors.setM2Speed(-200);
   while (encoderCountLeft < countsFor90Degrees && encoderCountRight > -1 * countsFor90Degrees) {
     // Keep turning until the desired encoder count is reached
+    Serial.print("right encoder count (right): ");
     Serial.println(encoderCountRight);
+    Serial.print("left encoder count (right): ");
     Serial.println(encoderCountLeft);
   }
   motors.setM1Speed(0); //wait 1 second after turning
@@ -293,15 +300,20 @@ void turnRight() {
   delay(1000);
 }
 void turnLeft() {
+  motors.setM1Speed(0);
+  motors.setM2Speed(0);
+  delay(200); // this delay reduces inertia and improves consistency
   encoderCountRight = 0; // Reset right encoder count
   encoderCountLeft = 0;  // Reset left encoder count
-  //  motors.setM1Speed(0); //we want a set speed instead of a ramp up
-  //  motors.setM2Speed(0);
+  motors.setM1Speed(0);
+  motors.setM2Speed(0);
   motors.setM1Speed(-200); //we want a set speed instead of a ramp up
   motors.setM2Speed(200);
   while ((encoderCountLeft > -1 * countsFor90Degrees) or (encoderCountRight < countsFor90Degrees)) {
     // Keep turning until the desired encoder count is reached
+    Serial.print("right encoder count (left): ");
     Serial.println(encoderCountRight);
+    Serial.print("left encoder count (left): ");
     Serial.println(encoderCountLeft);
   }
   motors.setM1Speed(0); //wait 1 second after turning
@@ -310,6 +322,9 @@ void turnLeft() {
 }
 
 void turnAround() {
+  motors.setM1Speed(0);
+  motors.setM2Speed(0);
+  delay(200); // this delay reduces inertia and improves consistency
   encoderCountRight = 0; // Reset right encoder count
   encoderCountLeft = 0;  // Reset left encoder count
   //  motors.setM1Speed(0); //we want a set speed instead of a ramp up
@@ -318,7 +333,9 @@ void turnAround() {
   motors.setM2Speed(200);
   while ((encoderCountLeft > -1 * countsFor180Degrees) or (encoderCountRight < countsFor180Degrees)) {
     // Keep turning until the desired encoder count is reached
+    Serial.print("right encoder count (around): ");
     Serial.println(encoderCountRight);
+    Serial.print("left encoder count (around): ");
     Serial.println(encoderCountLeft);
   }
   motors.setM1Speed(0); //wait 1 second after turning
@@ -330,19 +347,19 @@ void turnAround() {
 //encoder counts
 void changeM1A() {
   if (digitalRead(M1CHA) != digitalRead(M1CHB)) {
-    encoderCountLeft++;
+    encoderCountLeft--;
   }
   else {
-    encoderCountLeft--;
+    encoderCountLeft++;
   }
 
 }
 void changeM1B() {
   if (digitalRead(M1CHA) != digitalRead(M1CHB)) {
-    encoderCountLeft--;
+    encoderCountLeft++;
   }
   else {
-    encoderCountLeft++;
+    encoderCountLeft--;
   }
 
 }
