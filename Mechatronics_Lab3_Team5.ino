@@ -5,6 +5,9 @@
 DualMAX14870MotorShield motors;
 Pixy2 pixy;
 
+#define PID 0
+#define NON_PID 1
+
 /*
   1. You need five states: go forward, go backward, turn left, turn right, and turn around.
   2. To make the turning movement, you send different PWM signals to the DC motors so
@@ -59,6 +62,21 @@ const int SIGNATURE_RIGHT = 2;
 const int SIGNATURE_TURN_AROUND = 3;
 
 
+
+//global variables to store the last encoder count and the last time checked
+volatile int lastEncoderCountRight = 0;
+volatile int lastEncoderCountLeft = 0;
+unsigned long lastTimeChecked = 0;
+
+
+//speed control
+float speedRight = 0;
+float speedLeft = 0;
+int adjustment = 25; //for adjusting the speed between the two motors
+float kp = 0.5; //proportional control for the turning
+
+
+
 enum Action {
   FORWARD,
   BACKWARD,
@@ -84,6 +102,9 @@ void setCarState(Action newState) {
 
 void setup() {
   // put your setup code here, to run once:
+  //time the speed was last checked
+  lastTimeChecked = millis();
+
   //attach interrupt functions
   Serial.begin(115200); //for the pixy
   Serial.print("Starting...\n"); //for the pixy
@@ -127,6 +148,51 @@ void loop() {
   Serial.println(distance);
   Serial.print("state: ");
   Serial.println(currentState);
+
+
+
+  //SPEED CONTROL NON-PID
+  unsigned long currentTime = millis();
+  if(currentTime - lastTimeChecked >= 100){ //check every 100 miliseconds
+    int deltaCountRight = encoderCountRight - lastEncoderCountRight;
+    int deltaCountLeft = encoderCountLeft - lastEncoderCountLeft;
+    unsigned long deltaTime = currentTime - lastTimeChecked;
+
+    //calculate speed in counts per second
+    speedRight = (deltaCountRight/(float)deltaTime) * 1000;
+    speedLeft = (deltaCountRight/(float)deltaTime) * 1000;
+
+    lastEncoderCountRight = encoderCountRight;
+    lastEncoderCountLeft = encoderCountLeft;
+    lastTimeChecked = currentTime;
+
+    Serial.print("Speed Right: ");
+    Serial.println(speedRight);
+
+    Serial.print("Speed Left: ");
+    Serial.println(speedLeft);
+
+    //compare distance between the two wheels
+    int distanceDifference =  (encoderCountRight - encoderCountLeft);
+    if (abs(distanceDifference) > diff_distance_threshold){
+      if(distanceDifference > 0){ //this means that the right turned more than the left
+        // Right wheel is ahead, slow down right motor or speed up left motor
+          adjustMotorSpeeds(speedLeftMotor + adjustment, speedRightMotor - adjustment);
+        } else {
+          // Left wheel is ahead, slow down left motor or speed up right motor
+          adjustMotorSpeeds(speedLeftMotor - adjustment, speedRightMotor + adjustment);
+
+        } 
+
+      }
+
+
+
+
+    } 
+
+
+  }  
 
 
   switch (currentState) {
@@ -265,6 +331,18 @@ void measureDistance() {
   pulseDuration = pulseIn(signal, HIGH);
 
 }
+//adjustment for motor speeds
+void adjustMotorSpeeds(int leftSpeed, int rightSpeed) {
+    // Ensure the speeds are within allowable range
+    leftSpeed = constrain(leftSpeed, 0, 400);
+    rightSpeed = constrain(rightSpeed, 0, 400);
+
+    // Set the motor speeds
+    motors.setM1Speed(leftSpeed);
+    motors.setM2Speed(rightSpeed);
+}
+
+
 
 //rotating functions
 void RotateCW_M1() {
@@ -288,6 +366,18 @@ void turnRight() {
   encoderCountLeft = 0;  // Reset left encoder count
   motors.setM1Speed(200); //we want a set speed instead of a ramp up
   motors.setM2Speed(-200);
+
+  while(abs(encoderCountRight) < countsFor90Degrees){
+    int error = counts90Degrees - abs(encoderCountRight);
+    //proportional control
+    int speed = kp * error;
+    //constrain the speed
+    speed = constrain(speed, 0, 200);
+    motors.setM1Speed(speed);
+    motors.setM2Speed(-speed); // Opposite direction for turning
+
+  }
+  /*
   while (encoderCountLeft < countsFor90Degrees && encoderCountRight > -1 * countsFor90Degrees) {
     // Keep turning until the desired encoder count is reached
     Serial.print("right encoder count (right): ");
@@ -295,6 +385,7 @@ void turnRight() {
     Serial.print("left encoder count (right): ");
     Serial.println(encoderCountLeft);
   }
+  */
   motors.setM1Speed(0); //wait 1 second after turning
   motors.setM2Speed(0);
   delay(1000);
@@ -305,10 +396,21 @@ void turnLeft() {
   delay(200); // this delay reduces inertia and improves consistency
   encoderCountRight = 0; // Reset right encoder count
   encoderCountLeft = 0;  // Reset left encoder count
-  motors.setM1Speed(0);
-  motors.setM2Speed(0);
+
   motors.setM1Speed(-200); //we want a set speed instead of a ramp up
   motors.setM2Speed(200);
+
+  while(abs(encoderCountLeft) < countsFor90Degrees){
+    int error = counts90Degrees - abs(encoderCountLeft);
+    //proportional control
+    int speed = kp * error;
+    //constrain the speed
+    speed = constrain(speed, 0, 200);
+    motors.setM1Speed(-speed);
+    motors.setM2Speed(speed); // Opposite direction for turning
+
+  }
+  /*
   while ((encoderCountLeft > -1 * countsFor90Degrees) or (encoderCountRight < countsFor90Degrees)) {
     // Keep turning until the desired encoder count is reached
     Serial.print("right encoder count (left): ");
@@ -316,6 +418,7 @@ void turnLeft() {
     Serial.print("left encoder count (left): ");
     Serial.println(encoderCountLeft);
   }
+  */
   motors.setM1Speed(0); //wait 1 second after turning
   motors.setM2Speed(0);
   delay(1000);
@@ -331,6 +434,18 @@ void turnAround() {
   //  motors.setM2Speed(0);
   motors.setM1Speed(-200); //we want a set speed instead of a ramp up
   motors.setM2Speed(200);
+
+  while(abs(encoderCountLeft) < countsFor180Degrees){
+    int error = counts180Degrees - abs(encoderCountLeft);
+    //proportional control
+    int speed = kp * error;
+    //constrain the speed
+    speed = constrain(speed, 0, 200);
+    motors.setM1Speed(-speed);
+    motors.setM2Speed(speed); // Opposite direction for turning
+  }
+  
+  /*
   while ((encoderCountLeft > -1 * countsFor180Degrees) or (encoderCountRight < countsFor180Degrees)) {
     // Keep turning until the desired encoder count is reached
     Serial.print("right encoder count (around): ");
@@ -338,6 +453,7 @@ void turnAround() {
     Serial.print("left encoder count (around): ");
     Serial.println(encoderCountLeft);
   }
+  */
   motors.setM1Speed(0); //wait 1 second after turning
   motors.setM2Speed(0);
   delay(1000);
