@@ -36,8 +36,8 @@ int M2CHB = 3; //white, right, motor 2
 volatile int encoderCountRight = 0;
 volatile int encoderCountLeft = 0;
 float countsPerDegree = (9.7 * 48) / 360.0;
-float countsFor90Degrees = (countsPerDegree * 90 * 9.25 / 3.5) - 65; //right turning, may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft, 
-float counts90left = (countsPerDegree * 90 * 9.25 / 3.5) - 75; //left turning, may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft, 
+float countsFor90Degrees = (countsPerDegree * 90 * 9.25 / 3.5) - 65; //right turning, may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft,
+float counts90left = (countsPerDegree * 90 * 9.25 / 3.5) - 75; //left turning, may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft,
 //40 degrees is the overshoot adjustment
 //value for above should be 230.14, I added a 0 to make it easier to debug the modes. Should determine empirically.
 float countsFor180Degrees = counts90left * 2.0;
@@ -187,17 +187,32 @@ void loop() {
     Serial.print("Enc Right: ");
     Serial.println(encoderCountRight);
 
-    if (abs(distanceDifference) > diff_distance_threshold) {
-      if (distanceDifference > 0) { //this means that the right turned more than the left
-        // Right wheel is ahead, slow down right motor or speed up left motor
-        leftSpeed = constrain(10 + abs(distanceDifference), 0, 200);
-        //       rightSpeed = constrain(200 - adjustment, 0, 300);
-      } else {
-        // Left wheel is ahead, slow down left motor or speed up right motor
-        //     leftSpeed = constrain(200 - adjustment, 0, 300);
-        rightSpeed = constrain(10 + abs(distanceDifference), 0, 200);
+    int pixyDiff;
+    int detected_objects = pixy.ccc.getBlocks();
+    if (detected_objects > 0) { //if greater than zero object has been detected
+      pixyDiff = pixy.ccc.blocks[0].m_x - (316 / 2);
+      if (pixyDiff > 0) { //middle of the object is postive from center, it's to the right, the left wheel needs more power
+        leftSpeed = constrain(10 + abs(pixyDiff), 0, 200);
+      }
+      else if (pixyDiff < 0) {//middle of object is negative from center, it's to the left, the right wheel needs more power
+        rightSpeed = constrain(10 + abs(pixyDiff), 0, 200);
+      }
+      else { //if at 0, exit
+//        break;
       }
     }
+// Canceling encoder drift
+//    else if (abs(distanceDifference) > diff_distance_threshold) {
+//      if (distanceDifference > 0) { //this means that the right turned more than the left
+//        // Right wheel is ahead, slow down right motor or speed up left motor
+//        leftSpeed = constrain(10 + abs(distanceDifference), 0, 200);
+//        //       rightSpeed = constrain(200 - adjustment, 0, 300);
+//      } else {
+//        // Left wheel is ahead, slow down left motor or speed up right motor
+//        //     leftSpeed = constrain(200 - adjustment, 0, 300);
+//        rightSpeed = constrain(10 + abs(distanceDifference), 0, 200);
+//      }
+//    }
   }
 
 
@@ -428,7 +443,7 @@ void turnLeft() {
     //constrain the speed
     speed = constrain(speed, 150, 250);
     motors.setM1Speed(-speed);
-    motors.setM2Speed(speed); 
+    motors.setM2Speed(speed);
     error = counts90left - abs(encoderCountLeft);
   }
   /*
