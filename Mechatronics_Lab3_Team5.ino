@@ -36,17 +36,17 @@ int M2CHB = 3; //white, right, motor 2
 volatile int encoderCountRight = 0;
 volatile int encoderCountLeft = 0;
 float countsPerDegree = (9.7 * 48) / 360.0;
-float countsFor90Degrees = (countsPerDegree * 90 * 9.25 / 3.5) - 40; //may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft, 
-float counts90left = countsFor90Degrees - 30; //may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft, 
+float countsFor90Degrees = (countsPerDegree * 90 * 9.25 / 3.5) - 65; //right turning, may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft, 
+float counts90left = (countsPerDegree * 90 * 9.25 / 3.5) - 75; //left turning, may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft, 
 //40 degrees is the overshoot adjustment
 //value for above should be 230.14, I added a 0 to make it easier to debug the modes. Should determine empirically.
-float countsFor180Degrees = countsFor90Degrees * 2.0;
+float countsFor180Degrees = counts90left * 2.0;
 float angResolution;
 
 //sensor initialization
 int signal = 49; //digital pin
 float distance;
-int distThresh = 10;
+int distThresh = 5;
 unsigned long pulseDuration; //USS
 
 //LEDs for debugging:
@@ -77,8 +77,8 @@ float speedLeft = 0;
 int adjustment = 10; //for adjusting the speed between the two motors
 float kp = 0.8; //proportional control for the turning
 int diff_distance_threshold = 0;
-int   leftSpeed = 100;
-int    rightSpeed = 100;
+int   leftSpeed = 150;
+int    rightSpeed = 150;
 
 
 
@@ -358,16 +358,16 @@ void measureDistance() {
 
 //rotating functions
 void RotateCW_M1() {
-  motors.setM1Speed(100);
+  motors.setM1Speed(150);
 }
 void RotateCW_M2() {
-  motors.setM2Speed(100);
+  motors.setM2Speed(150);
 }
 void RotateCCW_M1() {
-  motors.setM1Speed(-100);
+  motors.setM1Speed(-150);
 }
 void RotateCCW_M2() {
-  motors.setM2Speed(-100);
+  motors.setM2Speed(-150);
 }
 
 void turnRight() {
@@ -376,8 +376,8 @@ void turnRight() {
   delay(200); // this delay reduces inertia and improves consistency
   encoderCountRight = 0; // Reset right encoder count
   encoderCountLeft = 0;  // Reset left encoder count
-  motors.setM1Speed(100); //we want a set speed instead of a ramp up
-  motors.setM2Speed(-100);
+  motors.setM1Speed(150); //we want a set speed instead of a ramp up
+  motors.setM2Speed(-150);
 
   int error = countsFor90Degrees - abs(encoderCountRight);
   while (abs(error) > 10) {
@@ -385,7 +385,7 @@ void turnRight() {
     //proportional control
     int speed = kp * error;
     //constrain the speed
-    speed = constrain(speed, 100, 200);
+    speed = constrain(speed, 150, 250);
     motors.setM1Speed(speed);
     motors.setM2Speed(-speed); // Opposite direction for turning
     Serial.print("right encoder count (right): ");
@@ -418,15 +418,15 @@ void turnLeft() {
   delay(200); // this delay reduces inertia and improves consistency
   encoderCountRight = 0; // Reset right encoder count
   encoderCountLeft = 0;  // Reset left encoder count
-  motors.setM1Speed(-100); //we want a set speed instead of a ramp up
-  motors.setM2Speed(100);
+  motors.setM1Speed(-150); //we want a set speed instead of a ramp up
+  motors.setM2Speed(150);
 
   int error = counts90left - abs(encoderCountLeft);
   while (abs(error) > 10) {
     //proportional control
     int speed = kp * error;
     //constrain the speed
-    speed = constrain(speed, 100, 200);
+    speed = constrain(speed, 150, 250);
     motors.setM1Speed(-speed);
     motors.setM2Speed(speed); 
     error = counts90left - abs(encoderCountLeft);
@@ -455,15 +455,15 @@ void turnAround() {
   encoderCountLeft = 0;  // Reset left encoder count
   //  motors.setM1Speed(0); //we want a set speed instead of a ramp up
   //  motors.setM2Speed(0);
-  motors.setM1Speed(-100); //we want a set speed instead of a ramp up
-  motors.setM2Speed(100);
+  motors.setM1Speed(-150); //we want a set speed instead of a ramp up
+  motors.setM2Speed(150);
 
   int error = countsFor180Degrees - abs(encoderCountLeft);
   while (abs(error) > 10) {
     //proportional control
     int speed = kp * error;
     //constrain the speed
-    speed = constrain(speed, 100, 200);
+    speed = constrain(speed, 150, 250);
     motors.setM1Speed(-speed);
     motors.setM2Speed(speed); // Opposite direction for turning
     error = countsFor180Degrees - abs(encoderCountLeft);
