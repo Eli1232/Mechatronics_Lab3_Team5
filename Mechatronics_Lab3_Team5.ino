@@ -46,7 +46,7 @@ float angResolution;
 //sensor initialization
 int signal = 49; //digital pin
 float distance;
-int distThresh = 5;
+int distThresh = 10;
 unsigned long pulseDuration; //USS
 
 //LEDs for debugging:
@@ -149,8 +149,8 @@ void loop() {
 
   measureDistance();
   distance = (pulseDuration * 0.0001 * 343) / 2; //conversion for the distance
-  Serial.print("distance: ");
-  Serial.println(distance);
+  //  Serial.print("distance: ");
+  //  Serial.println(distance);
   Serial.print("state: ");
   Serial.println(currentState);
 
@@ -177,42 +177,40 @@ void loop() {
     //    Serial.print("Speed Left: ");
     //    Serial.println(speedLeft);
 
+
+    //    Serial.print("Enc Left: ");
+    //    Serial.println(encoderCountLeft);
+    //
+    //    Serial.print("Enc Right: ");
+    //    Serial.println(encoderCountRight);
+
+    // else { //if detect no objects, do the normal correction
+
+
+
     //compare distance between the two wheels, for drift
     //    encoderCountLeft = encoderCountLeft - 5; //hardware compensation for left drift
+
+    //default speed
+    leftSpeed = 150;
+    rightSpeed = 150;
+
     int distanceDifference =  (encoderCountRight - encoderCountLeft);
 
-    Serial.print("Enc Left: ");
-    Serial.println(encoderCountLeft);
+    // Canceling encoder drift
+    if (abs(distanceDifference) > diff_distance_threshold) {
+      if (distanceDifference > 0) { //this means that the right turned more than the left
+        // Right wheel is ahead, slow down right motor or speed up left motor
+        leftSpeed = constrain(10 + abs(distanceDifference), 0, 200);
+        //       rightSpeed = constrain(200 - adjustment, 0, 300);
+      } else {
+        // Left wheel is ahead, slow down left motor or speed up right motor
+        //     leftSpeed = constrain(200 - adjustment, 0, 300);
+        rightSpeed = constrain(10 + abs(distanceDifference), 0, 200);
+      }
+      //    }
 
-    Serial.print("Enc Right: ");
-    Serial.println(encoderCountRight);
-
-    int pixyDiff;
-    int detected_objects = pixy.ccc.getBlocks();
-    if (detected_objects > 0) { //if greater than zero object has been detected
-      pixyDiff = pixy.ccc.blocks[0].m_x - (316 / 2);
-      if (pixyDiff > 0) { //middle of the object is postive from center, it's to the right, the left wheel needs more power
-        leftSpeed = constrain(10 + abs(pixyDiff), 0, 200);
-      }
-      else if (pixyDiff < 0) {//middle of object is negative from center, it's to the left, the right wheel needs more power
-        rightSpeed = constrain(10 + abs(pixyDiff), 0, 200);
-      }
-      else { //if at 0, exit
-//        break;
-      }
     }
-// Canceling encoder drift
-//    else if (abs(distanceDifference) > diff_distance_threshold) {
-//      if (distanceDifference > 0) { //this means that the right turned more than the left
-//        // Right wheel is ahead, slow down right motor or speed up left motor
-//        leftSpeed = constrain(10 + abs(distanceDifference), 0, 200);
-//        //       rightSpeed = constrain(200 - adjustment, 0, 300);
-//      } else {
-//        // Left wheel is ahead, slow down left motor or speed up right motor
-//        //     leftSpeed = constrain(200 - adjustment, 0, 300);
-//        rightSpeed = constrain(10 + abs(distanceDifference), 0, 200);
-//      }
-//    }
   }
 
 
@@ -267,6 +265,7 @@ void loop() {
       digitalWrite(ledTurnLeft, HIGH);
 
       turnLeft();
+      PixyCenter();
       setCarState(STATIONARY);
       break;
 
@@ -278,6 +277,7 @@ void loop() {
       digitalWrite(ledTurnRight, HIGH);
 
       turnRight();
+      PixyCenter();
       setCarState(STATIONARY);
       break;
 
@@ -285,6 +285,7 @@ void loop() {
       ledOff();
       digitalWrite(ledTurnAround, HIGH);
       turnAround();
+      PixyCenter();
       setCarState(STATIONARY);
       break;
 
@@ -403,12 +404,12 @@ void turnRight() {
     speed = constrain(speed, 150, 250);
     motors.setM1Speed(speed);
     motors.setM2Speed(-speed); // Opposite direction for turning
-    Serial.print("right encoder count (right): ");
-    Serial.println(encoderCountRight);
-    Serial.print("left encoder count (right): ");
-    Serial.println(encoderCountLeft);
-    Serial.print("error: ");
-    Serial.println(error);
+    //    Serial.print("right encoder count (right): ");
+    //    Serial.println(encoderCountRight);
+    //    Serial.print("left encoder count (right): ");
+    //    Serial.println(encoderCountLeft);
+    //    Serial.print("error: ");
+    //    Serial.println(error);
     error = countsFor90Degrees - abs(encoderCountRight);
   }
   /*
@@ -559,4 +560,37 @@ void ledOff() {
   digitalWrite(ledTurnLeft, LOW);
   digitalWrite(ledTurnRight, LOW);
   digitalWrite(ledTurnAround, LOW);
+}
+
+void PixyCenter() {
+  int pixyDiff;
+  int j = 0;
+  int detected_objects = pixy.ccc.getBlocks();
+  if (detected_objects > 0) {
+    //  for (j = 0; j < detected_objects; j++ ) {
+    //     if ((pixy.ccc.blocks[j].m_signature == (SIGNATURE_LEFT or SIGNATURE_RIGHT or SIGNATURE_TURN_AROUND)) and pixy.ccc.blocks[j].m_width > 30) {
+    pixyDiff = pixy.ccc.blocks[j].m_x - (316 / 2); //choose the object
+    while (abs(pixyDiff) > 10) { //middle of the object is postive from center, it's to the right, the left wheel needs more power
+      pixy.ccc.getBlocks();
+      pixyDiff = pixy.ccc.blocks[j].m_x - ((316 / 2) + 20); //move a bit more right than center to account for wiggle to the left at the beginning
+      if (pixyDiff > 0) {
+        leftSpeed = constrain(20 + (abs(pixyDiff)), 0, 200);
+        motors.setM1Speed(leftSpeed);
+        Serial.print("pixyDiff: ");
+        Serial.println(pixy.ccc.blocks[j].m_x);
+      }
+      else {//middle of object is negative from center, it's to the left, the right wheel needs more power
+        rightSpeed = constrain(20 + (abs(pixyDiff)), 0, 200);
+        motors.setM2Speed(rightSpeed);
+        Serial.print("pixyDiff: ");
+        Serial.println(pixy.ccc.blocks[j].m_x);
+      }
+
+      //     }
+      //  }
+    }
+    //at this point, centered
+    leftSpeed = 0;
+    rightSpeed = 0;
+  }
 }
