@@ -62,6 +62,8 @@ const int ledTurnAround = 47;
 const int SIGNATURE_LEFT = 1;
 const int SIGNATURE_RIGHT = 2;
 const int SIGNATURE_TURN_AROUND = 3;
+const int SIGNATURE_RIGHT_Light = 4;
+const int SIGNATURE_RIGHT_Light2 = 5;
 
 
 
@@ -303,6 +305,12 @@ void loop() {
               break;
             case SIGNATURE_TURN_AROUND:
               setCarState(TURN_AROUND);
+              break;
+            case SIGNATURE_RIGHT_Light:
+              setCarState(TURN_RIGHT);
+              break;
+            case SIGNATURE_RIGHT_Light2:
+              setCarState(TURN_RIGHT);
               break;
             default:
               // unknown signatures
@@ -548,18 +556,46 @@ void PixyCenter() {
   int jindex;
   int qval = 9999; //x value of the previous object read
   int mid = 316 / 2;
-  int integral = 0;;
+  int integral = 0;
   int detected_objects = pixy.ccc.getBlocks();
-  if (detected_objects > 0) {
-    if (detected_objects > 1) {
-      for (q = 0; q < detected_objects; q++ ) {
+  while (detected_objects > 1) {
+    if (qval = 9999) { //find it once
+      for (q = 0; q < detected_objects; q++ ) { //find the correct object
         if (min(abs(qval - mid), abs(pixy.ccc.blocks[q].m_x - mid)) == (pixy.ccc.blocks[q].m_x - mid)) { //if detected object closer tothe middle, that's the one we follow
           qval = pixy.ccc.blocks[q].m_x;
           j = q;
-          jindex = pixy.ccc.blocks[j].m_index;
         }
       }
     }
+
+    pixyDiff = pixy.ccc.blocks[j].m_x - (316 / 2); //choose the object
+    while ((abs(pixyDiff) > 5) and (detected_objects > 1)) { //middle of the object is postive from center, it's to the right, the left wheel needs more power
+      pixy.ccc.getBlocks();
+      pixyDiff = pixy.ccc.blocks[j].m_x - ((316 / 2)); //move a bit more right than center to account for wiggle to the left at the beginning
+      if (pixyDiff > 0) {
+        leftSpeed = constrain(20 + (abs(pixyDiff)) + (integral / 6), 0, 200);
+        motors.setM1Speed(leftSpeed);
+        Serial.print("pixyDiff: ");
+        Serial.println(pixy.ccc.blocks[j].m_x);
+        Serial.println(j);
+        delay(10);
+        integral++;
+      }
+      else {//middle of object is negative from center, it's to the left, the right wheel needs more power
+        rightSpeed = constrain(20 + (abs(pixyDiff)) + (integral / 6), 0, 200); //integral control so it doesn't stall
+        motors.setM2Speed(rightSpeed);
+        Serial.print("pixyDiff: ");
+        Serial.println(pixy.ccc.blocks[j].m_x);
+        Serial.println(j);
+        delay(10);
+        integral++;
+      }
+    }
+
+
+  }
+  if (detected_objects == 1) {
+    //   integral = 0;
     //  for (j = 0; j < detected_objects; j++ ) {
     //     if ((pixy.ccc.blocks[j].m_signature == (SIGNATURE_LEFT or SIGNATURE_RIGHT or SIGNATURE_TURN_AROUND)) and pixy.ccc.blocks[j].m_width > 30) {
     pixyDiff = pixy.ccc.blocks[j].m_x - (316 / 2); //choose the object
@@ -584,9 +620,6 @@ void PixyCenter() {
         delay(10);
         integral++;
       }
-
-      //     }
-      //  }
     }
     //at this point, centered
     motors.setM1Speed(0);
