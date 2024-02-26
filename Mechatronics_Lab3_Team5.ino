@@ -156,62 +156,6 @@ void loop() {
 
 
 
-  //SPEED CONTROL NON-PID
-  unsigned long currentTime = millis();
-  if (currentTime - lastTimeChecked >= 10) { //check every 10 miliseconds
-    int deltaCountRight = encoderCountRight - lastEncoderCountRight;
-    int deltaCountLeft = encoderCountLeft - lastEncoderCountLeft;
-    unsigned long deltaTime = currentTime - lastTimeChecked;
-
-    //calculate speed in counts per second
-    speedRight = (deltaCountRight / (float)deltaTime) * 1000;
-    speedLeft = (deltaCountRight / (float)deltaTime) * 1000;
-
-    lastEncoderCountRight = encoderCountRight;
-    lastEncoderCountLeft = encoderCountLeft;
-    lastTimeChecked = currentTime;
-
-    //    Serial.print("Speed Right: ");
-    //    Serial.println(speedRight);
-    //
-    //    Serial.print("Speed Left: ");
-    //    Serial.println(speedLeft);
-
-
-    //    Serial.print("Enc Left: ");
-    //    Serial.println(encoderCountLeft);
-    //
-    //    Serial.print("Enc Right: ");
-    //    Serial.println(encoderCountRight);
-
-    // else { //if detect no objects, do the normal correction
-
-
-
-    //compare distance between the two wheels, for drift
-    //    encoderCountLeft = encoderCountLeft - 5; //hardware compensation for left drift
-
-    //default speed
-    leftSpeed = 150;
-    rightSpeed = 150;
-
-    int distanceDifference =  (encoderCountRight - encoderCountLeft);
-
-    // Canceling encoder drift
-    if (abs(distanceDifference) > diff_distance_threshold) {
-      if (distanceDifference > 0) { //this means that the right turned more than the left
-        // Right wheel is ahead, slow down right motor or speed up left motor
-        leftSpeed = constrain(10 + abs(distanceDifference), 0, 200);
-        //       rightSpeed = constrain(200 - adjustment, 0, 300);
-      } else {
-        // Left wheel is ahead, slow down left motor or speed up right motor
-        //     leftSpeed = constrain(200 - adjustment, 0, 300);
-        rightSpeed = constrain(10 + abs(distanceDifference), 0, 200);
-      }
-      //    }
-
-    }
-  }
 
 
 
@@ -221,6 +165,67 @@ void loop() {
 
 
     case FORWARD:
+
+
+      //SPEED CONTROL NON-PID
+      unsigned long currentTime = millis();
+      if (currentTime - lastTimeChecked >= 10) { //check every 10 miliseconds
+        int deltaCountRight = encoderCountRight - lastEncoderCountRight;
+        int deltaCountLeft = encoderCountLeft - lastEncoderCountLeft;
+        unsigned long deltaTime = currentTime - lastTimeChecked;
+
+        //calculate speed in counts per second
+        speedRight = (deltaCountRight / (float)deltaTime) * 1000;
+        speedLeft = (deltaCountRight / (float)deltaTime) * 1000;
+
+        lastEncoderCountRight = encoderCountRight;
+        lastEncoderCountLeft = encoderCountLeft;
+        lastTimeChecked = currentTime;
+
+        //    Serial.print("Speed Right: ");
+        //    Serial.println(speedRight);
+        //
+        //    Serial.print("Speed Left: ");
+        //    Serial.println(speedLeft);
+
+
+        //    Serial.print("Enc Left: ");
+        //    Serial.println(encoderCountLeft);
+        //
+        //    Serial.print("Enc Right: ");
+        //    Serial.println(encoderCountRight);
+
+        // else { //if detect no objects, do the normal correction
+
+
+
+        //compare distance between the two wheels, for drift
+        //    encoderCountLeft = encoderCountLeft - 5; //hardware compensation for left drift
+
+        //default speed
+        leftSpeed = 150;
+        rightSpeed = 150;
+
+        int distanceDifference =  (encoderCountRight - encoderCountLeft);
+
+        // Canceling encoder drift
+        if (abs(distanceDifference) > diff_distance_threshold) {
+          if (distanceDifference > 0) { //this means that the right turned more than the left
+            // Right wheel is ahead, slow down right motor or speed up left motor
+            leftSpeed = constrain(10 + abs(distanceDifference), 0, 200);
+            //       rightSpeed = constrain(200 - adjustment, 0, 300);
+          } else {
+            // Left wheel is ahead, slow down left motor or speed up right motor
+            //     leftSpeed = constrain(200 - adjustment, 0, 300);
+            rightSpeed = constrain(10 + abs(distanceDifference), 0, 200);
+          }
+          //    }
+
+        }
+      }
+
+
+
       ledOff();
       //both motors turn forward at the same speed (no need for feedback control because we'll use distance sensors for that)
       //motors move until certain distance is achieved from wall, turn wheel, then send back to stationary
@@ -390,8 +395,7 @@ void turnRight() {
   motors.setM1Speed(0);
   motors.setM2Speed(0);
   delay(200); // this delay reduces inertia and improves consistency
-  encoderCountRight = 0; // Reset right encoder count
-  encoderCountLeft = 0;  // Reset left encoder count
+  ZeroEncoder();
   motors.setM1Speed(150); //we want a set speed instead of a ramp up
   motors.setM2Speed(-150);
 
@@ -423,8 +427,7 @@ void turnRight() {
   */
   motors.setM1Speed(0); //wait 1 second after turning
   motors.setM2Speed(0);
-  encoderCountRight = 0; // Reset right encoder count
-  encoderCountLeft = 0;  // Reset left encoder count
+  ZeroEncoder();
   delay(1000);
 }
 
@@ -432,8 +435,7 @@ void turnLeft() {
   motors.setM1Speed(0);
   motors.setM2Speed(0);
   delay(200); // this delay reduces inertia and improves consistency
-  encoderCountRight = 0; // Reset right encoder count
-  encoderCountLeft = 0;  // Reset left encoder count
+  ZeroEncoder();
   motors.setM1Speed(-150); //we want a set speed instead of a ramp up
   motors.setM2Speed(150);
 
@@ -458,8 +460,7 @@ void turnLeft() {
   */
   motors.setM1Speed(0); //wait 1 second after turning
   motors.setM2Speed(0);
-  encoderCountRight = 0; // Reset right encoder count
-  encoderCountLeft = 0;  // Reset left encoder count
+  ZeroEncoder();
   delay(1000);
 }
 
@@ -467,8 +468,7 @@ void turnAround() {
   motors.setM1Speed(0);
   motors.setM2Speed(0);
   delay(200); // this delay reduces inertia and improves consistency
-  encoderCountRight = 0; // Reset right encoder count
-  encoderCountLeft = 0;  // Reset left encoder count
+  ZeroEncoder();
   //  motors.setM1Speed(0); //we want a set speed instead of a ramp up
   //  motors.setM2Speed(0);
   motors.setM1Speed(-150); //we want a set speed instead of a ramp up
@@ -496,8 +496,7 @@ void turnAround() {
   */
   motors.setM1Speed(0); //wait 1 second after turning
   motors.setM2Speed(0);
-  encoderCountRight = 0; // Reset right encoder count
-  encoderCountLeft = 0;  // Reset left encoder count
+  ZeroEncoder();
   delay(1000);
 }
 
@@ -606,14 +605,25 @@ void PixyCenter() {
       //  }
     }
     //at this point, centered
+    motors.setM1Speed(0);
+    motors.setM2Speed(0);
     leftSpeed = 0;
     rightSpeed = 0;
     delay(400); //delay before forward again
   }
 }
 
+void ZeroEncoder() {
+  encoderCountRight = 0; // Reset right encoder count
+  encoderCountLeft = 0;  // Reset left encoder count
+  lastEncoderCountLeft = 0;
+  lastEncoderCountRight = 0;
+}
+
 //Logs
-//Going too far left on the first turn, even after it centers with the pixy. It's repeatably going too far left. I'm getting rid of the 20 offset for the pixy
-//making middle margin smaller, 5 instead of 10
-//Current status- it does the first few turns well, but once it gets to a point where there's 2 objects visible- 1 straight ahead (current target) and one on the
+//-Going too far left on the first turn, even after it centers with the pixy. It's repeatably going too far left. I'm getting rid of the 20 offset for the pixy
+//-making middle margin smaller, 5 instead of 10
+//-Current status- it does the first few turns well, but once it gets to a point where there's 2 objects visible- 1 straight ahead (current target) and one on the
 //far left side (future target), it goes for the second one. I'm gonna make it so if it detects 2 objects, choose the one closer to the middle of the fov.
+//-Robot keeps overcompensating to the left immediately after a left turn. It orients itself well, but it does not move straight right away, so it hits a wall. I'm
+//going to put the speed control only in forward. Also made a zeroencoder function to zero current and previous encoder count after each turn
