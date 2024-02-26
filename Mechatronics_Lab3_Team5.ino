@@ -591,6 +591,7 @@ void PixyCenter() {
     rightSpeed = 0;
     delay(400); //delay before forward again
   }
+  ZeroEncoder();
 }
 
 void ZeroEncoder() {
