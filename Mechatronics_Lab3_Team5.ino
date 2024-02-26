@@ -36,7 +36,7 @@ int M2CHB = 3; //white, right, motor 2
 volatile int encoderCountRight = 0;
 volatile int encoderCountLeft = 0;
 float countsPerDegree = (9.7 * 48) / 360.0;
-float countsFor90Degrees = (countsPerDegree * 90 * 9.25 / 3.5) - 65; //right turning, may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft,
+float countsFor90Degrees = (countsPerDegree * 90 * 9.25 / 3.5) - 60; //right turning, may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft,
 float counts90left = (countsPerDegree * 90 * 9.25 / 3.5) - 75; //left turning, may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft,
 //40 degrees is the overshoot adjustment
 //value for above should be 230.14, I added a 0 to make it easier to debug the modes. Should determine empirically.
@@ -569,6 +569,7 @@ void PixyCenter() {
         motors.setM1Speed(leftSpeed);
         Serial.print("pixyDiff: ");
         Serial.println(pixy.ccc.blocks[j].m_x);
+        Serial.println(j);
         delay(10);
         integral++;
       }
@@ -577,6 +578,7 @@ void PixyCenter() {
         motors.setM2Speed(rightSpeed);
         Serial.print("pixyDiff: ");
         Serial.println(pixy.ccc.blocks[j].m_x);
+        Serial.println(j);
         delay(10);
         integral++;
       }
@@ -610,3 +612,6 @@ void ZeroEncoder() {
 //going to put the speed control only in forward. Also made a zeroencoder function to zero current and previous encoder count after each turn
 //-Setting default left speed a bit higher, didn't work
 //-Behaviour: robot drifts left quickly right after pixy center completes, right before it moves forward. Happens 60% of the time.
+//-Drift is fixed
+//-Changed countsFor90Degrees from 65 to 60 so it turns a bit more
+//-pixy going towards the wrong object when it detects multiple...
