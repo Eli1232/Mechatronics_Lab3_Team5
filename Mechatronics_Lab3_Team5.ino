@@ -154,19 +154,6 @@ void loop() {
   Serial.print("state: ");
   Serial.println(currentState);
 
-
-
-
-
-
-
-
-  switch (currentState) {
-
-
-    case FORWARD:
-
-
       //SPEED CONTROL NON-PID
       unsigned long currentTime = millis();
       if (currentTime - lastTimeChecked >= 10) { //check every 10 miliseconds
@@ -203,7 +190,7 @@ void loop() {
         //    encoderCountLeft = encoderCountLeft - 5; //hardware compensation for left drift
 
         //default speed
-        leftSpeed = 150;
+        leftSpeed = 165;
         rightSpeed = 150;
 
         int distanceDifference =  (encoderCountRight - encoderCountLeft);
@@ -223,6 +210,19 @@ void loop() {
 
         }
       }
+
+
+
+
+
+
+  switch (currentState) {
+
+
+    case FORWARD:
+
+
+
 
 
 
@@ -627,3 +627,5 @@ void ZeroEncoder() {
 //far left side (future target), it goes for the second one. I'm gonna make it so if it detects 2 objects, choose the one closer to the middle of the fov.
 //-Robot keeps overcompensating to the left immediately after a left turn. It orients itself well, but it does not move straight right away, so it hits a wall. I'm
 //going to put the speed control only in forward. Also made a zeroencoder function to zero current and previous encoder count after each turn
+//-Setting default left speed a bit higher, didn't work
+//-Behaviour: robot drifts left quickly right after pixy center completes, right before it moves forward. Happens 60% of the time. 
