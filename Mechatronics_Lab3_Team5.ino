@@ -154,62 +154,42 @@ void loop() {
   Serial.print("state: ");
   Serial.println(currentState);
 
-      //SPEED CONTROL NON-PID
-      unsigned long currentTime = millis();
-      if (currentTime - lastTimeChecked >= 10) { //check every 10 miliseconds
-        int deltaCountRight = encoderCountRight - lastEncoderCountRight;
-        int deltaCountLeft = encoderCountLeft - lastEncoderCountLeft;
-        unsigned long deltaTime = currentTime - lastTimeChecked;
+  //SPEED CONTROL NON-PID
+  unsigned long currentTime = millis();
+  if (currentTime - lastTimeChecked >= 10) { //check every 10 miliseconds
 
-        //calculate speed in counts per second
-        speedRight = (deltaCountRight / (float)deltaTime) * 1000;
-        speedLeft = (deltaCountRight / (float)deltaTime) * 1000;
-
-        lastEncoderCountRight = encoderCountRight;
-        lastEncoderCountLeft = encoderCountLeft;
-        lastTimeChecked = currentTime;
-
-        //    Serial.print("Speed Right: ");
-        //    Serial.println(speedRight);
-        //
-        //    Serial.print("Speed Left: ");
-        //    Serial.println(speedLeft);
+    lastEncoderCountRight = encoderCountRight;
+    lastEncoderCountLeft = encoderCountLeft;
+    lastTimeChecked = currentTime;
 
 
-        //    Serial.print("Enc Left: ");
-        //    Serial.println(encoderCountLeft);
-        //
-        //    Serial.print("Enc Right: ");
-        //    Serial.println(encoderCountRight);
+    //default speed
+    leftSpeed = 110;
+    rightSpeed = 110;
 
-        // else { //if detect no objects, do the normal correction
+    int distanceDifference =  (encoderCountRight - encoderCountLeft);
 
-
-
-        //compare distance between the two wheels, for drift
-        //    encoderCountLeft = encoderCountLeft - 5; //hardware compensation for left drift
-
-        //default speed
-        leftSpeed = 165;
-        rightSpeed = 150;
-
-        int distanceDifference =  (encoderCountRight - encoderCountLeft);
-
-        // Canceling encoder drift
-        if (abs(distanceDifference) > diff_distance_threshold) {
-          if (distanceDifference > 0) { //this means that the right turned more than the left
-            // Right wheel is ahead, slow down right motor or speed up left motor
-            leftSpeed = constrain(10 + abs(distanceDifference), 0, 200);
-            //       rightSpeed = constrain(200 - adjustment, 0, 300);
-          } else {
-            // Left wheel is ahead, slow down left motor or speed up right motor
-            //     leftSpeed = constrain(200 - adjustment, 0, 300);
-            rightSpeed = constrain(10 + abs(distanceDifference), 0, 200);
-          }
-          //    }
-
-        }
+    // Canceling encoder drift
+    if (abs(distanceDifference) > diff_distance_threshold) {
+      if (distanceDifference > 0) { //this means that the right turned more than the left
+        // Right wheel is ahead, keep right wheel the same and speed up left wheel
+        leftSpeed = constrain(110 + abs(distanceDifference), 0, 300);
+        rightSpeed = 110;
+      } else {
+        // Left wheel is ahead, slow down left motor or speed up right motor
+        //     leftSpeed = constrain(200 - adjustment, 0, 300);
+        rightSpeed = constrain(110 + abs(distanceDifference), 0, 300);
+        leftSpeed = 110;
       }
+      //    }
+
+    }
+    Serial.print("right: ");
+    Serial.println(rightSpeed);
+    Serial.print("left: ");
+    Serial.println(leftSpeed);
+
+  }
 
 
 
@@ -628,4 +608,4 @@ void ZeroEncoder() {
 //-Robot keeps overcompensating to the left immediately after a left turn. It orients itself well, but it does not move straight right away, so it hits a wall. I'm
 //going to put the speed control only in forward. Also made a zeroencoder function to zero current and previous encoder count after each turn
 //-Setting default left speed a bit higher, didn't work
-//-Behaviour: robot drifts left quickly right after pixy center completes, right before it moves forward. Happens 60% of the time. 
+//-Behaviour: robot drifts left quickly right after pixy center completes, right before it moves forward. Happens 60% of the time.
