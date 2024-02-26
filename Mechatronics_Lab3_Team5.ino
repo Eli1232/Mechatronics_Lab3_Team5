@@ -46,7 +46,7 @@ float angResolution;
 //sensor initialization
 int signal = 49; //digital pin
 float distance;
-int distThresh = 5;
+int distThresh = 10;
 unsigned long pulseDuration; //USS
 
 //LEDs for debugging:
@@ -252,6 +252,7 @@ void loop() {
       digitalWrite(ledTurnLeft, HIGH);
 
       turnLeft();
+      moveBack();
       PixyCenter();
       setCarState(STATIONARY);
       break;
@@ -264,6 +265,7 @@ void loop() {
       digitalWrite(ledTurnRight, HIGH);
 
       turnRight();
+      moveBack();
       PixyCenter();
       setCarState(STATIONARY);
       break;
@@ -272,6 +274,7 @@ void loop() {
       ledOff();
       digitalWrite(ledTurnAround, HIGH);
       turnAround();
+      moveBack();
       PixyCenter();
       setCarState(STATIONARY);
       break;
@@ -294,7 +297,15 @@ void loop() {
 
     case PIXY_READ:
       int detected_objects = pixy.ccc.getBlocks();
+
+      while (detected_objects == 0) {
+        detected_objects = pixy.ccc.getBlocks();
+        motors.setM1Speed(-75);
+        motors.setM2Speed(-75);
+      }
       if (detected_objects > 0) { //if greater than zero object has been detected
+        motors.setM1Speed(0);
+        motors.setM2Speed(0);
         for (int i = 0; i < detected_objects; i++ ) {
           switch (pixy.ccc.blocks[i].m_signature) {
             case SIGNATURE_LEFT:
@@ -320,9 +331,6 @@ void loop() {
           break;
         }
 
-      }
-      else {
-        //no objects detected
       }
       break;
 
@@ -636,6 +644,17 @@ void ZeroEncoder() {
   encoderCountLeft = 0;  // Reset left encoder count
   lastEncoderCountLeft = 0;
   lastEncoderCountRight = 0;
+}
+
+void moveBack() {
+  unsigned long backTime = millis();
+  while (millis() - backTime < 1000) {
+    motors.setM1Speed(-75);
+    motors.setM2Speed(-75);
+  }
+  motors.setM1Speed(0);
+  motors.setM2Speed(0);
+  ZeroEncoder();
 }
 
 //Logs
