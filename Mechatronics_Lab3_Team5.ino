@@ -46,7 +46,7 @@ float angResolution;
 //sensor initialization
 int signal = 49; //digital pin
 float distance;
-int distThresh = 10;
+int distThresh = 5;
 unsigned long pulseDuration; //USS
 
 //LEDs for debugging:
@@ -545,6 +545,7 @@ void PixyCenter() {
   int pixyDiff;
   int j = 0;
   int q;
+  int jindex;
   int qval = 9999; //x value of the previous object read
   int mid = 316 / 2;
   int integral = 0;;
@@ -555,6 +556,7 @@ void PixyCenter() {
         if (min(abs(qval - mid), abs(pixy.ccc.blocks[q].m_x - mid)) == (pixy.ccc.blocks[q].m_x - mid)) { //if detected object closer tothe middle, that's the one we follow
           qval = pixy.ccc.blocks[q].m_x;
           j = q;
+          jindex = pixy.ccc.blocks[j].m_index;
         }
       }
     }
@@ -615,3 +617,4 @@ void ZeroEncoder() {
 //-Drift is fixed
 //-Changed countsFor90Degrees from 65 to 60 so it turns a bit more
 //-pixy going towards the wrong object when it detects multiple...
+//-changing dist thresh to 5
