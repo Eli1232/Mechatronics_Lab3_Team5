@@ -565,25 +565,30 @@ void ledOff() {
 void PixyCenter() {
   int pixyDiff;
   int j = 0;
+  int integral = 0;;
   int detected_objects = pixy.ccc.getBlocks();
   if (detected_objects > 0) {
     //  for (j = 0; j < detected_objects; j++ ) {
     //     if ((pixy.ccc.blocks[j].m_signature == (SIGNATURE_LEFT or SIGNATURE_RIGHT or SIGNATURE_TURN_AROUND)) and pixy.ccc.blocks[j].m_width > 30) {
     pixyDiff = pixy.ccc.blocks[j].m_x - (316 / 2); //choose the object
-    while (abs(pixyDiff) > 10) { //middle of the object is postive from center, it's to the right, the left wheel needs more power
+    while (abs(pixyDiff) > 5) { //middle of the object is postive from center, it's to the right, the left wheel needs more power
       pixy.ccc.getBlocks();
-      pixyDiff = pixy.ccc.blocks[j].m_x - ((316 / 2) + 20); //move a bit more right than center to account for wiggle to the left at the beginning
+      pixyDiff = pixy.ccc.blocks[j].m_x - ((316 / 2)); //move a bit more right than center to account for wiggle to the left at the beginning
       if (pixyDiff > 0) {
-        leftSpeed = constrain(20 + (abs(pixyDiff)), 0, 200);
+        leftSpeed = constrain(20 + (abs(pixyDiff))+(integral/6), 0, 200);
         motors.setM1Speed(leftSpeed);
         Serial.print("pixyDiff: ");
         Serial.println(pixy.ccc.blocks[j].m_x);
+        delay(10);
+        integral++;
       }
       else {//middle of object is negative from center, it's to the left, the right wheel needs more power
-        rightSpeed = constrain(20 + (abs(pixyDiff)), 0, 200);
+        rightSpeed = constrain(20 + (abs(pixyDiff))+(integral/6), 0, 200); //integral control so it doesn't stall
         motors.setM2Speed(rightSpeed);
         Serial.print("pixyDiff: ");
         Serial.println(pixy.ccc.blocks[j].m_x);
+        delay(10);
+        integral++;
       }
 
       //     }
@@ -592,5 +597,12 @@ void PixyCenter() {
     //at this point, centered
     leftSpeed = 0;
     rightSpeed = 0;
+    delay(400); //delay before forward again
   }
 }
+
+//Logs
+//Going too far left on the first turn, even after it centers with the pixy. It's repeatably going too far left. I'm getting rid of the 20 offset for the pixy
+//making middle margin smaller, 5 instead of 10
+//Current status- it does the first few turns well, but once it gets to a point where there's 2 objects visible- 1 straight ahead (current target) and one on the 
+//far left side (future target), it goes for the second one. I'm gonna make it so if it detects 2 objects, choose the one closer to the middle of the fov. 
