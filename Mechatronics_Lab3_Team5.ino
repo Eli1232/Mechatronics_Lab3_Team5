@@ -563,45 +563,77 @@ void PixyCenter() {
   int q;
   int jindex;
   int qval = 9999; //x value of the previous object read
+  int closestX = 9999;
+  int currentX;
   int mid = 316 / 2;
   int integral = 0;
   int detected_objects = pixy.ccc.getBlocks();
   while (detected_objects > 1) {
-    if (qval = 9999) { //find it once
-      for (q = 0; q < detected_objects; q++ ) { //find the correct object
-        if (min(abs(qval - mid), abs(pixy.ccc.blocks[q].m_x - mid)) == (pixy.ccc.blocks[q].m_x - mid)) { //if detected object closer tothe middle, that's the one we follow
-          qval = pixy.ccc.blocks[q].m_x;
-          j = q;
-        }
-      }
-    }
+    // if (qval = 9999) { //find it once
+    for (q = 0; q < detected_objects; q++ ) { //find the correct object
+      //    pixy.ccc.getBlocks();
 
-    pixyDiff = pixy.ccc.blocks[j].m_x - (316 / 2); //choose the object
-    while ((abs(pixyDiff) > 5) and (detected_objects > 1)) { //middle of the object is postive from center, it's to the right, the left wheel needs more power
-      detected_objects = pixy.ccc.getBlocks();
-      pixyDiff = pixy.ccc.blocks[j].m_x - ((316 / 2)); //move a bit more right than center to account for wiggle to the left at the beginning
-      if (pixyDiff > 0) {
-        leftSpeed = constrain(20 + (abs(pixyDiff)) + (integral / 6), 0, 200);
-        motors.setM1Speed(leftSpeed);
-        Serial.print("pixyDiff: ");
-        Serial.println(pixy.ccc.blocks[j].m_x);
+      currentX = pixy.ccc.blocks[q].m_x;
+
+      Serial.print("object # ");
+      Serial.println(q);
+      Serial.print("m_signature ");
+      Serial.println(pixy.ccc.blocks[q].m_signature);
+      Serial.print("x pos  ");
+      Serial.println(currentX);
+      Serial.print("abs(pixy.ccc.blocks[q].m_x - mid)  ");
+      Serial.println(abs(currentX - mid) );
+
+
+      if (abs(currentX - mid) < closestX) {
+        closestX = abs(currentX - mid);
+        j = q;
+        Serial.print("closest X ");
+        Serial.println(closestX);
+        Serial.print("j ");
         Serial.println(j);
-        delay(10);
-        integral++;
       }
-      else {//middle of object is negative from center, it's to the left, the right wheel needs more power
-        rightSpeed = constrain(20 + (abs(pixyDiff)) + (integral / 6), 0, 200); //integral control so it doesn't stall
-        motors.setM2Speed(rightSpeed);
-        Serial.print("pixyDiff: ");
-        Serial.println(pixy.ccc.blocks[j].m_x);
-        Serial.println(j);
-        delay(10);
-        integral++;
-      }
+
+      //        if (min(abs(qval - mid), abs(pixy.ccc.blocks[q].m_x - mid)) == (pixy.ccc.blocks[q].m_x - mid)) { //if detected object closer tothe middle, that's the one we follow
+      //          qval = pixy.ccc.blocks[q].m_x;
+      //          j = q; //j is the index of the object we want to follow, closest to the middle
+      //
     }
-
-
+    //}
+    Serial.println(pixy.ccc.blocks[j].m_signature);
+    Serial.println(pixy.ccc.blocks[j].m_x);
+    while (1) {
+      //     pixy.ccc.getBlocks();
+      //      Serial.println(pixy.ccc.blocks[j].m_x);
+    }
   }
+
+  pixyDiff = pixy.ccc.blocks[j].m_x - (316 / 2); //choose the object
+  while ((abs(pixyDiff) > 5) and (detected_objects > 1)) { //middle of the object is postive from center, it's to the right, the left wheel needs more power
+    detected_objects = pixy.ccc.getBlocks();
+    pixyDiff = pixy.ccc.blocks[j].m_x - ((316 / 2)); //move a bit more right than center to account for wiggle to the left at the beginning
+    if (pixyDiff > 0) {
+      leftSpeed = constrain(20 + (abs(pixyDiff)) + (integral / 6), 0, 200);
+      motors.setM1Speed(leftSpeed);
+      Serial.print("pixyDiff: ");
+      Serial.println(pixy.ccc.blocks[j].m_x);
+      Serial.println(j);
+      delay(10);
+      integral++;
+    }
+    else {//middle of object is negative from center, it's to the left, the right wheel needs more power
+      rightSpeed = constrain(20 + (abs(pixyDiff)) + (integral / 6), 0, 200); //integral control so it doesn't stall
+      motors.setM2Speed(rightSpeed);
+      Serial.print("pixyDiff: ");
+      Serial.println(pixy.ccc.blocks[j].m_x);
+      Serial.println(j);
+      delay(10);
+      integral++;
+    }
+  }
+
+
+
   if (detected_objects == 1) {
     //   integral = 0;
     //  for (j = 0; j < detected_objects; j++ ) {
