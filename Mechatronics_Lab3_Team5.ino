@@ -675,13 +675,33 @@ void ZeroEncoder() {
   encoderCountLeft = 0;  // Reset left encoder count
   lastEncoderCountLeft = 0;
   lastEncoderCountRight = 0;
+  leftSpeed = 0;
+  rightSpeed = 0;
 }
 
-void moveBack() {
-  unsigned long backTime = millis();
-  while (millis() - backTime < 1000) {
-    motors.setM1Speed(-75);
-    motors.setM2Speed(-75);
+void moveBack() { //move left and right encoder to
+  ZeroEncoder();
+  int encintegral = 0;
+  int encoderBackTarget = -200; //the encoder value we want left and right to get to
+  while ((encoderCountRight > encoderBackTarget) or (encoderCountLeft > encoderBackTarget)) {
+    if (encoderCountRight < encoderBackTarget) {
+      rightSpeed = 0;
+    }
+    else {
+      rightSpeed = constrain(-1 * (20 + (abs(encoderCountLeft - encoderBackTarget)) / 3 + (encintegral / 6)), -200, 0);
+    }
+
+    if (encoderCountLeft < encoderBackTarget) {
+      leftSpeed = 0;
+    }
+    else {
+          leftSpeed = constrain(-1 * (20 + (abs(encoderCountRight - encoderBackTarget)) / 3 + (encintegral / 6)), -200, 0);
+    }
+
+    motors.setM1Speed(leftSpeed);
+    motors.setM2Speed(rightSpeed);
+    delay(10);
+    encintegral++;
   }
   motors.setM1Speed(0);
   motors.setM2Speed(0);
