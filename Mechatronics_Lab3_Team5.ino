@@ -36,7 +36,7 @@ int M2CHB = 3; //white, right, motor 2
 volatile int encoderCountRight = 0;
 volatile int encoderCountLeft = 0;
 float countsPerDegree = (9.7 * 48) / 360.0;
-float countsFor90Degrees = (countsPerDegree * 90 * 9.25 / 3.5) - 60; //right turning, may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft,
+float countsFor90Degrees = (countsPerDegree * 90 * 9.25 / 3.5) - 50; //right turning, may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft,
 float counts90left = (countsPerDegree * 90 * 9.25 / 3.5) - 75; //left turning, may need to be calibrated/changed, counts for 90 degrees of the robot, not the motor shaft,
 //40 degrees is the overshoot adjustment
 //value for above should be 230.14, I added a 0 to make it easier to debug the modes. Should determine empirically.
@@ -602,36 +602,35 @@ void PixyCenter() {
     //}
     Serial.println(pixy.ccc.blocks[j].m_signature);
     Serial.println(pixy.ccc.blocks[j].m_x);
-    while (1) {
-      //     pixy.ccc.getBlocks();
-      //      Serial.println(pixy.ccc.blocks[j].m_x);
+    //     pixy.ccc.getBlocks();
+    //      Serial.println(pixy.ccc.blocks[j].m_x);
+
+
+
+    pixyDiff = pixy.ccc.blocks[j].m_x - (316 / 2); //choose the object
+    while ((abs(pixyDiff) > 5) and (detected_objects > 1)) { //middle of the object is postive from center, it's to the right, the left wheel needs more power
+      detected_objects = pixy.ccc.getBlocks();
+      pixyDiff = pixy.ccc.blocks[j].m_x - ((316 / 2)); //move a bit more right than center to account for wiggle to the left at the beginning
+      if (pixyDiff > 0) {
+        leftSpeed = constrain(20 + (abs(pixyDiff)) + (integral / 6), 0, 200);
+        motors.setM1Speed(leftSpeed);
+        Serial.print("pixyDiff: ");
+        Serial.println(pixy.ccc.blocks[j].m_x);
+        Serial.println(j);
+        delay(10);
+        integral++;
+      }
+      else {//middle of object is negative from center, it's to the left, the right wheel needs more power
+        rightSpeed = constrain(20 + (abs(pixyDiff)) + (integral / 6), 0, 200); //integral control so it doesn't stall
+        motors.setM2Speed(rightSpeed);
+        Serial.print("pixyDiff: ");
+        Serial.println(pixy.ccc.blocks[j].m_x);
+        Serial.println(j);
+        delay(10);
+        integral++;
+      }
     }
   }
-
-  pixyDiff = pixy.ccc.blocks[j].m_x - (316 / 2); //choose the object
-  while ((abs(pixyDiff) > 5) and (detected_objects > 1)) { //middle of the object is postive from center, it's to the right, the left wheel needs more power
-    detected_objects = pixy.ccc.getBlocks();
-    pixyDiff = pixy.ccc.blocks[j].m_x - ((316 / 2)); //move a bit more right than center to account for wiggle to the left at the beginning
-    if (pixyDiff > 0) {
-      leftSpeed = constrain(20 + (abs(pixyDiff)) + (integral / 6), 0, 200);
-      motors.setM1Speed(leftSpeed);
-      Serial.print("pixyDiff: ");
-      Serial.println(pixy.ccc.blocks[j].m_x);
-      Serial.println(j);
-      delay(10);
-      integral++;
-    }
-    else {//middle of object is negative from center, it's to the left, the right wheel needs more power
-      rightSpeed = constrain(20 + (abs(pixyDiff)) + (integral / 6), 0, 200); //integral control so it doesn't stall
-      motors.setM2Speed(rightSpeed);
-      Serial.print("pixyDiff: ");
-      Serial.println(pixy.ccc.blocks[j].m_x);
-      Serial.println(j);
-      delay(10);
-      integral++;
-    }
-  }
-
 
 
   if (detected_objects == 1) {
@@ -703,4 +702,7 @@ void moveBack() {
 //-Changed countsFor90Degrees from 65 to 60 so it turns a bit more
 //-pixy going towards the wrong object when it detects multiple...
 //-changing dist thresh to 5
+//-Adding 5 degrees to right turn
 //-Dist thresh set to 10, move back after turing (with a delay), detect objects within Pixy Center while
+//countsFor90Degrees -60 -> -55
+//countsFor90Degrees -55 -> -50 since it turns a bit too little right now
