@@ -578,7 +578,7 @@ void PixyCenter() {
 
     pixyDiff = pixy.ccc.blocks[j].m_x - (316 / 2); //choose the object
     while ((abs(pixyDiff) > 5) and (detected_objects > 1)) { //middle of the object is postive from center, it's to the right, the left wheel needs more power
-      pixy.ccc.getBlocks();
+      detected_objects = pixy.ccc.getBlocks();
       pixyDiff = pixy.ccc.blocks[j].m_x - ((316 / 2)); //move a bit more right than center to account for wiggle to the left at the beginning
       if (pixyDiff > 0) {
         leftSpeed = constrain(20 + (abs(pixyDiff)) + (integral / 6), 0, 200);
@@ -655,6 +655,7 @@ void moveBack() {
   motors.setM1Speed(0);
   motors.setM2Speed(0);
   ZeroEncoder();
+  delay(400);
 }
 
 //Logs
@@ -670,3 +671,4 @@ void moveBack() {
 //-Changed countsFor90Degrees from 65 to 60 so it turns a bit more
 //-pixy going towards the wrong object when it detects multiple...
 //-changing dist thresh to 5
+//-Dist thresh set to 10, move back after turing (with a delay), detect objects within Pixy Center while
